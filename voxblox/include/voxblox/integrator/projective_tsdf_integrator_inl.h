@@ -60,8 +60,9 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::integratePointCloud(
   // Process all blocks
   timing::Timer integration_timer("integration_timer");
   if (config_.integrator_threads == 1) {
-    updateTsdfBlocks(T_G_C, range_image_, color_image_, touched_block_indices,
-                     deintegrate);
+    updateTsdfBlocks(T_G_C, range_image_,
+                     colors.size() ? &color_image_ : nullptr,
+                     touched_block_indices, deintegrate);
   } else {
     std::vector<voxblox::IndexSet> block_index_subsets(
         config_.integrator_threads);
@@ -75,7 +76,8 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::integratePointCloud(
     for (size_t i = 0; i < config_.integrator_threads; ++i) {
       integration_threads.emplace_back(
           &ProjectiveTsdfIntegrator::updateTsdfBlocks, this, T_G_C,
-          range_image_, color_image_, block_index_subsets[i], deintegrate);
+          range_image_, colors.size() ? &color_image_ : nullptr,
+          block_index_subsets[i], deintegrate);
     }
     for (std::thread &integration_thread : integration_threads) {
       integration_thread.join();
@@ -105,10 +107,13 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::parsePointcloud(
   CHECK_NOTNULL(range_image);
   CHECK_NOTNULL(color_image);
   CHECK_NOTNULL(touched_block_indices);
-  CHECK_EQ(points_C.size(), colors.size());
-  Eigen::MatrixXf color_cnt_image(color_image->rows(), color_image->cols());
-  color_cnt_image.setZero();
-  color_image->setConstant(Color());
+  Eigen::MatrixXf color_cnt_image;
+  if (colors.size()) {
+    CHECK_EQ(points_C.size(), colors.size());
+    color_cnt_image = Eigen::MatrixXf(color_image->rows(), color_image->cols());
+    color_cnt_image.setZero();
+    color_image->setConstant(Color());
+  }
   if (config_.use_missing_points_for_clearing) {
     constexpr float kMaxMissingPointsToClearRatio = 0.3;
     const float total_resolution =
@@ -164,11 +169,12 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::parsePointcloud(
           std::min(range_image->operator()(h, w), distance);
     }
 
-    color_image->operator()(h, w) = Color::blendTwoColors(
-        colors[point_idx], 1 / (color_cnt_image.operator()(h, w) + 1),
-        color_image->operator()(h, w),
-        (color_cnt_image.operator()(h, w) /
-         (color_cnt_image.operator()(h, w) + 1)));
+    if (colors.size())
+      color_image->operator()(h, w) = Color::blendTwoColors(
+          colors[point_idx], 1 / (color_cnt_image.operator()(h, w) + 1),
+          color_image->operator()(h, w),
+          (color_cnt_image.operator()(h, w) /
+           (color_cnt_image.operator()(h, w) + 1)));
 
     // Mark the blocks hit by this ray
     if (config_.min_ray_length_m <= distance &&
@@ -205,8 +211,8 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::parsePointcloud(
 template <InterpolationScheme interpolation_scheme>
 void ProjectiveTsdfIntegrator<interpolation_scheme>::updateTsdfBlocks(
     const Transformation &T_G_C, const Eigen::MatrixXf &range_image,
-    const ColorImage &color_image,
-    const voxblox::IndexSet &touched_block_indices, const bool deintegrate) {
+    ColorImage *color_image, const voxblox::IndexSet &touched_block_indices,
+    const bool deintegrate) {
   for (const voxblox::BlockIndex &block_index : touched_block_indices) {
     voxblox::Block<TsdfVoxel>::Ptr block_ptr =
         layer_->getBlockPtrByIndex(block_index);
@@ -226,7 +232,7 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::updateTsdfBlocks(
 
 template <InterpolationScheme interpolation_scheme>
 void ProjectiveTsdfIntegrator<interpolation_scheme>::updateTsdfVoxel(
-    const Eigen::MatrixXf &range_image, const ColorImage &color_image,
+    const Eigen::MatrixXf &range_image, ColorImage *color_image,
     const Point &t_C_voxel, TsdfVoxel *tsdf_voxel, const bool deintegrate) {
   // Skip voxels that are too far or too close
   const float distance_to_voxel = t_C_voxel.norm();
@@ -303,7 +309,8 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::updateTsdfVoxel(
 
   // Store the updated voxel color, weight and distance
   // TODO(mikexyl): better color interpolate, maybe gaussion
-  tsdf_voxel->color = color_image(std::round(h), std::round(w));
+  if (color_image != nullptr)
+    tsdf_voxel->color = color_image->operator()(std::round(h), std::round(w));
   tsdf_voxel->distance = (tsdf_voxel->distance * tsdf_voxel->weight +
                           std::min(config_.default_truncation_distance, sdf) *
                               observation_weight) /

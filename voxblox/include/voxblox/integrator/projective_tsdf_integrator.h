@@ -49,11 +49,11 @@ class ProjectiveTsdfIntegrator : public voxblox::TsdfIntegratorBase {
 
   void updateTsdfBlocks(const Transformation& T_G_C,
                         const Eigen::MatrixXf& range_image,
-                        const ColorImage& color_image,
+                        ColorImage* color_image,
                         const voxblox::IndexSet& touched_block_indices,
                         const bool deintegrate = false);
   inline void updateTsdfVoxel(const Eigen::MatrixXf& range_image,
-                              const ColorImage& color_image,
+                              ColorImage* color_image,
                               const Point& t_C_voxel, TsdfVoxel* tsdf_voxel,
                               const bool deintegrate = false);
 
