@@ -87,6 +87,7 @@ void Block<TsdfVoxel>::deserializeFromIntegers(
     voxel.color.b = static_cast<uint8_t>((bytes_3 & 0x0000FF00) >> 8);
     voxel.color.a = static_cast<uint8_t>(bytes_3 & 0x000000FF);
   }
+  updated().set();
 }
 
 template <>
