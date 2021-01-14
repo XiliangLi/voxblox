@@ -104,12 +104,10 @@ void EsdfIntegrator::updateFromTsdfLayerBatch() {
 void EsdfIntegrator::updateFromTsdfLayer(bool clear_updated_flag) {
   BlockIndexList tsdf_blocks;
   tsdf_layer_->getAllUpdatedBlocks(Update::kEsdf, &tsdf_blocks);
-  LOG(INFO) << "tsdf_blocks: " << tsdf_blocks.size();
   tsdf_blocks.insert(tsdf_blocks.end(), updated_blocks_.begin(),
                      updated_blocks_.end());
   updated_blocks_.clear();
   const bool kIncremental = true;
-  LOG(INFO) << "tsdf_blocks: " << tsdf_blocks.size();
   updateFromTsdfBlocks(tsdf_blocks, kIncremental);
 
   if (clear_updated_flag) {

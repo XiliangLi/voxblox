@@ -107,6 +107,21 @@ class EsdfServer : public TsdfServer {
   // TODO(victorr): Add description
   bool map_has_been_pruned_;
   void pruneMap() override;
+
+  ros::Publisher active_esdf_pub_;
+  int num_subscribers_active_esdf_;
+  void activeMapPubCallback(const ros::TimerEvent& event) override {
+    TsdfServer::activeMapPubCallback(event);
+    int esdf_subscribers = active_esdf_pub_.getNumSubscribers();
+    if (esdf_subscribers > 0) {
+      voxblox_msgs::Layer esdf_layer_msg;
+      serializeLayerAsMsg<EsdfVoxel>(esdf_map_->getEsdfLayer(), false,
+                                     &esdf_layer_msg);
+      esdf_layer_msg.action = voxblox_msgs::Layer::ACTION_MERGE;
+      active_esdf_pub_.publish(esdf_layer_msg);
+    }
+    num_subscribers_active_esdf_ = esdf_subscribers;
+  }
 };
 
 }  // namespace voxblox

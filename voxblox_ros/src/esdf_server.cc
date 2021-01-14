@@ -28,7 +28,8 @@ EsdfServer::EsdfServer(const ros::NodeHandle& nh,
       traversability_radius_(1.0),
       incremental_update_(true),
       num_subscribers_esdf_map_(0),
-      map_has_been_pruned_(false) {
+      map_has_been_pruned_(false),
+      num_subscribers_active_esdf_(0) {
   // Set up map and integrator.
   esdf_map_.reset(new EsdfMap(esdf_config));
   esdf_integrator_.reset(new EsdfIntegrator(esdf_integrator_config,
@@ -82,6 +83,11 @@ void EsdfServer::setupRos() {
     update_esdf_timer_ =
         nh_private_.createTimer(ros::Duration(update_esdf_every_n_sec),
                                 &EsdfServer::updateEsdfEvent, this);
+  }
+
+  if (publish_active_tsdf_every_n_sec_ > 0.0) {
+    active_esdf_pub_ =
+        nh_private_.advertise<voxblox_msgs::Layer>("active_esdf_out", 10, true);
   }
 }
 

@@ -128,12 +128,6 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::parsePointcloud(
       range_image->block(0, horizontal_resolution_ / 2, vertical_resolution_, 2)
           .setZero();
     } else {
-      LOG(WARNING) << "Not using missing points for clearing since pointcloud "
-                      "only has "
-                   << points_C.size() << " out of " << total_resolution
-                   << " points. Will only clear if at most "
-                   << kMaxMissingPointsToClearRatio * 100
-                   << "% of the points are unknown.";
       range_image->setZero();
     }
   } else {
