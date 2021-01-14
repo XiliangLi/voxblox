@@ -48,7 +48,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
                             config.tsdf_voxels_per_side *
                             config.tsdf_voxels_per_side),
       map_needs_pruning_(false),
-      publish_map_with_trajectory_(false) {
+      publish_map_with_trajectory_(false),
+      num_subscribers_active_tsdf_(0) {
   getServerConfigFromRosParam(nh_private);
 
   // Advertise topics.
@@ -152,6 +153,20 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
         nh_private_.createTimer(ros::Duration(publish_map_every_n_sec),
                                 &TsdfServer::publishMapEvent, this);
   }
+
+  nh_private_.param<float>("publish_active_tsdf_every_n_sec",
+                           publish_active_tsdf_every_n_sec_, 0.0);
+
+  if (publish_active_tsdf_every_n_sec_ > 0.0) {
+    active_tsdf_pub_ =
+        nh_private_.advertise<voxblox_msgs::Layer>("active_tsdf_out", 10, true);
+    active_map_pub_timer_ =
+        nh_private_.createTimer(ros::Duration(publish_active_tsdf_every_n_sec_),
+                                &TsdfServer::activeMapPubCallback, this);
+  }
+
+  toggle_mapping_srv_ = nh_private_.advertiseService(
+      "toggle_mapping", &TsdfServer::toogleMappingCallback, this);
 }
 
 void TsdfServer::getServerConfigFromRosParam(
@@ -405,6 +420,8 @@ bool TsdfServer::getNextPointcloudFromQueue(
 
 void TsdfServer::insertPointcloud(
     const sensor_msgs::PointCloud2::Ptr& pointcloud_msg_in) {
+  if (!map_running_) return;
+
   if (pointcloud_msg_in->header.stamp - last_msg_time_ptcloud_ >
       min_time_between_msgs_) {
     last_msg_time_ptcloud_ = pointcloud_msg_in->header.stamp;

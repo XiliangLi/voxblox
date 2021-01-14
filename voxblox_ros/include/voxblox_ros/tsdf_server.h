@@ -14,6 +14,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
+#include <std_srvs/SetBool.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 
@@ -291,6 +292,34 @@ class TsdfServer {
 
   // TODO(victorr): Add description
   bool publish_map_with_trajectory_;
+
+  float publish_active_tsdf_every_n_sec_;
+  ros::Timer active_map_pub_timer_;
+  ros::Publisher active_tsdf_pub_;
+  int num_subscribers_active_tsdf_;
+  virtual void activeMapPubCallback(const ros::TimerEvent& event) {
+    int tsdf_subscribers = active_tsdf_pub_.getNumSubscribers();
+    if (tsdf_subscribers > 0) {
+      voxblox_msgs::Layer tsdf_layer_msg;
+      serializeLayerAsMsg<TsdfVoxel>(tsdf_map_->getTsdfLayer(), false,
+                                     &tsdf_layer_msg);
+
+      tsdf_layer_msg.action = voxblox_msgs::Layer::ACTION_MERGE;
+      active_tsdf_pub_.publish(tsdf_layer_msg);
+    }
+    num_subscribers_active_tsdf_ = tsdf_subscribers;
+  }
+
+  bool map_running_;
+  ros::ServiceServer toggle_mapping_srv_;
+  bool toogleMappingCallback(std_srvs::SetBool::Request& request,      // NOLINT
+                             std_srvs::SetBool::Response& response) {  // NOLINT
+    map_running_ = request.data;
+    response.success = true;
+    response.message = "Mapping " + static_cast<std::string>(
+                                        map_running_ ? "started" : "stopped");
+    return true;
+  }
 };
 
 }  // namespace voxblox
