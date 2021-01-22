@@ -200,6 +200,7 @@ void TsdfServer::getServerConfigFromRosParam(
   nh_private.param("accumulate_icp_corrections", accumulate_icp_corrections_,
                    accumulate_icp_corrections_);
 
+  nh_private.param<std::string>("pointcloud_frame", pointcloud_frame_, "");
   nh_private.param("verbose", verbose_, verbose_);
 
   // Pointcloud deintegration settings
@@ -421,6 +422,9 @@ bool TsdfServer::getNextPointcloudFromQueue(
 void TsdfServer::insertPointcloud(
     const sensor_msgs::PointCloud2::Ptr& pointcloud_msg_in) {
   if (!map_running_) return;
+
+  if (pointcloud_frame_.size())
+    pointcloud_msg_in->header.frame_id = pointcloud_frame_;
 
   if (pointcloud_msg_in->header.stamp - last_msg_time_ptcloud_ >
       min_time_between_msgs_) {

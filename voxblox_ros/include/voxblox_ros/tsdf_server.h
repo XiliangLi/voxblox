@@ -320,6 +320,8 @@ class TsdfServer {
                                         map_running_ ? "started" : "stopped");
     return true;
   }
+
+  std::string pointcloud_frame_;
 };
 
 }  // namespace voxblox
