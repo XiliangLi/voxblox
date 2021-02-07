@@ -49,7 +49,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
                             config.tsdf_voxels_per_side),
       map_needs_pruning_(false),
       publish_map_with_trajectory_(false),
-      num_subscribers_active_tsdf_(0) {
+      num_subscribers_active_tsdf_(0),
+      map_running_(true) {
   getServerConfigFromRosParam(nh_private);
 
   // Advertise topics.
