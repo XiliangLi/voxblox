@@ -322,6 +322,10 @@ class TsdfServer {
   }
 
   std::string pointcloud_frame_;
+
+  float submap_interval_;
+  ros::Time last_submap_stamp_;
+  std::vector<Transformation> pose_history_queue_;
 };
 
 }  // namespace voxblox

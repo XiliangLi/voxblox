@@ -168,6 +168,12 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
 
   toggle_mapping_srv_ = nh_private_.advertiseService(
       "toggle_mapping", &TsdfServer::toogleMappingCallback, this);
+
+  nh_private.param("submap_interval", submap_interval_, submap_interval_);
+
+  if (submap_interval_ > 0.0)
+    CHECK(pointcloud_deintegration_queue_length_ == 0 &&
+          publish_map_every_n_sec == 0);
 }
 
 void TsdfServer::getServerConfigFromRosParam(
@@ -430,6 +436,16 @@ void TsdfServer::insertPointcloud(
   if (pointcloud_msg_in->header.stamp - last_msg_time_ptcloud_ >
       min_time_between_msgs_) {
     last_msg_time_ptcloud_ = pointcloud_msg_in->header.stamp;
+
+    if (submap_interval_ > 0.0 &&
+        (last_msg_time_ptcloud_ - last_submap_stamp_).toSec() >
+            submap_interval_) {
+      // switch to new submap
+      last_submap_stamp_ = last_msg_time_ptcloud_;
+      publishMap();
+      tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
+      pointcloud_deintegration_queue_.clear();
+    }
     // So we have to process the queue anyway... Push this back.
     pointcloud_queue_.push(pointcloud_msg_in);
   }
@@ -487,7 +503,7 @@ void TsdfServer::integratePointcloud(
   tsdf_integrator_->integratePointCloud(T_G_C, *ptcloud_C, *colors,
                                         is_freespace_pointcloud);
 
-  if (pointcloud_deintegration_queue_length_ > 0) {
+  if (pointcloud_deintegration_queue_length_ > 0 || submap_interval_ > 0.0) {
     pointcloud_deintegration_queue_.emplace_back(PointcloudDeintegrationPacket{
         timestamp, T_G_C, ptcloud_C, colors, is_freespace_pointcloud});
   }
