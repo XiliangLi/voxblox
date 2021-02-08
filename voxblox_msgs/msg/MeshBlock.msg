@@ -13,3 +13,5 @@ uint16[] z
 uint8[] r
 uint8[] g
 uint8[] b
+
+voxblox_msgs/ObsHistory[] history

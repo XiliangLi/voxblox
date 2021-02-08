@@ -58,7 +58,7 @@ TsdfIntegratorBase::Ptr TsdfIntegratorFactory::create(
 
 TsdfIntegratorBase::TsdfIntegratorBase(const Config& config,
                                        Layer<TsdfVoxel>* layer)
-    : config_(config) {
+    : config_(config), obs_cnt_(0) {
   setLayer(layer);
 
   if (config_.integrator_threads == 0) {
@@ -208,6 +208,7 @@ void TsdfIntegratorBase::updateTsdfVoxel(const Point& origin,
   if (std::abs(sdf) < config_.default_truncation_distance) {
     tsdf_voxel->color = Color::blendTwoColors(
         tsdf_voxel->color, tsdf_voxel->weight, color, updated_weight);
+    tsdf_voxel->history.emplace(obs_cnt_);
   }
   tsdf_voxel->distance =
       (new_sdf > 0.0) ? std::min(config_.default_truncation_distance, new_sdf)

@@ -381,6 +381,25 @@ class MeshIntegrator {
     }
   }
 
+  void addHistoryToMesh() {
+    BlockIndexList mesh_block_ids;
+    mesh_layer_->getAllAllocatedMeshes(&mesh_block_ids);
+
+    for (auto const& mesh_block_id : mesh_block_ids) {
+      auto mesh = mesh_layer_->getMeshPtrByIndex(mesh_block_id);
+      for (size_t id = 0; id < mesh->indices.size(); id += 3) {
+        ObsHistory history;
+        for (int i = 0; i < 3; i++) {
+          auto voxel = sdf_layer_const_->getVoxelPtrByCoordinates(
+              mesh->vertices[id + i]);
+          CHECK(voxel != nullptr);
+          history.insert(voxel->history.begin(), voxel->history.end());
+        }
+        mesh->histories.emplace_back(history);
+      }
+    }
+  }
+
  protected:
   MeshIntegratorConfig config_;
 

@@ -157,6 +157,7 @@ class TsdfServer {
   ros::Publisher occupancy_marker_pub_;
   ros::Publisher icp_transform_pub_;
   ros::Publisher reprojected_pointcloud_pub_;
+  ros::Publisher mesh_with_history_pub_;
 
   /// Publish the complete map for other nodes to consume.
   ros::Publisher tsdf_map_pub_;
@@ -186,9 +187,8 @@ class TsdfServer {
    * frame.
    */
   std::string world_frame_;
-  /**
-   * Name of the ICP corrected frame. Publishes TF and transform topic to this
-   * if ICP on.
+  /** * Name of the ICP corrected frame. Publishes TF and transform topic to
+   * this * if ICP on.
    */
   std::string icp_corrected_frame_;
   /// Name of the pose in the ICP correct Frame.
@@ -297,7 +297,7 @@ class TsdfServer {
   ros::Timer active_map_pub_timer_;
   ros::Publisher active_tsdf_pub_;
   int num_subscribers_active_tsdf_;
-  virtual void activeMapPubCallback(const ros::TimerEvent& event) {
+  virtual void activeMapPubCallback(const ros::TimerEvent&) {
     int tsdf_subscribers = active_tsdf_pub_.getNumSubscribers();
     if (tsdf_subscribers > 0) {
       voxblox_msgs::Layer tsdf_layer_msg;
@@ -326,6 +326,27 @@ class TsdfServer {
   float submap_interval_;
   ros::Time last_submap_stamp_;
   std::vector<Transformation> pose_history_queue_;
+
+  struct MeshHistoryConfig : MeshIntegratorConfig {
+  } mesh_histroy_config;
+
+  bool publish_mesh_with_history_ = false;
+
+  void publishMeshWithHistory() {
+    std::shared_ptr<MeshLayer> mesh_layer(
+        new MeshLayer(tsdf_map_->block_size()));
+    std::shared_ptr<MeshIntegrator<TsdfVoxel>> mesh_integrator(
+        new MeshIntegrator<TsdfVoxel>(mesh_histroy_config,
+                                      tsdf_map_->getTsdfLayerPtr(),
+                                      mesh_layer.get()));
+
+    mesh_integrator->generateMesh(false, true);
+    mesh_integrator->addHistoryToMesh();
+
+    voxblox_msgs::Mesh mesh_msg;
+    generateVoxbloxMeshMsg(mesh_layer, color_mode_, &mesh_msg);
+    mesh_with_history_pub_.publish(mesh_msg);
+  }
 };
 
 }  // namespace voxblox
