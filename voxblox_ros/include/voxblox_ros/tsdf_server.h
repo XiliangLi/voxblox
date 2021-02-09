@@ -6,6 +6,7 @@
 #include <queue>
 #include <string>
 
+#include <minkindr_conversions/kindr_msg.h>
 #include <pcl/conversions.h>
 #include <pcl/filters/filter.h>
 #include <pcl/point_types.h>
@@ -345,6 +346,17 @@ class TsdfServer {
 
     voxblox_msgs::Mesh mesh_msg;
     generateVoxbloxMeshMsg(mesh_layer, color_mode_, &mesh_msg);
+
+    for (const PointcloudDeintegrationPacket& pointcloud_queue_packet :
+         pointcloud_deintegration_queue_) {
+      geometry_msgs::PoseStamped pose_msg;
+      pose_msg.header.frame_id = world_frame_;
+      pose_msg.header.stamp = pointcloud_queue_packet.timestamp;
+      tf::poseKindrToMsg(pointcloud_queue_packet.T_G_C.cast<double>(),
+                         &pose_msg.pose);
+      mesh_msg.trajectory.poses.emplace_back(pose_msg);
+    }
+
     mesh_with_history_pub_.publish(mesh_msg);
   }
 };

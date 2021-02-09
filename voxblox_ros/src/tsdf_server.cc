@@ -50,7 +50,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
       map_needs_pruning_(false),
       publish_map_with_trajectory_(false),
       num_subscribers_active_tsdf_(0),
-      map_running_(true) {
+      map_running_(true),
+      submap_interval_(0.0) {
   getServerConfigFromRosParam(nh_private);
 
   // Advertise topics.
@@ -77,6 +78,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
 
   nh_private_.param("publish_mesh_with_history", publish_mesh_with_history_,
                     publish_mesh_with_history_);
+
+  LOG(INFO) << publish_mesh_with_history_;
   if (publish_mesh_with_history_)
     mesh_with_history_pub_ = nh_private_.advertise<voxblox_msgs::Mesh>(
         "mesh_with_history", 10, true);
@@ -155,6 +158,13 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
   nh_private_.param("publish_map_every_n_sec", publish_map_every_n_sec,
                     publish_map_every_n_sec);
 
+  nh_private_.param("submap_interval", submap_interval_, submap_interval_);
+
+  if (submap_interval_ > 0.0) {
+    CHECK_EQ(pointcloud_deintegration_queue_length_, 0);
+    CHECK_EQ(publish_map_every_n_sec, 0.0);
+  }
+
   if (publish_map_every_n_sec > 0.0) {
     publish_map_timer_ =
         nh_private_.createTimer(ros::Duration(publish_map_every_n_sec),
@@ -174,12 +184,6 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
 
   toggle_mapping_srv_ = nh_private_.advertiseService(
       "toggle_mapping", &TsdfServer::toogleMappingCallback, this);
-
-  nh_private.param("submap_interval", submap_interval_, submap_interval_);
-
-  if (submap_interval_ > 0.0)
-    CHECK(pointcloud_deintegration_queue_length_ == 0 &&
-          publish_map_every_n_sec == 0);
 }
 
 void TsdfServer::getServerConfigFromRosParam(

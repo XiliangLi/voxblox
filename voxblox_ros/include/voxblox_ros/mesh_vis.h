@@ -218,7 +218,7 @@ inline void generateVoxbloxMeshMsg(MeshLayer* mesh_layer, ColorMode color_mode,
       }
     }
 
-    if (!mesh->hasHistory()) {
+    if (mesh->hasHistory()) {
       for (auto const& history : mesh->histories) {
         voxblox_msgs::ObsHistory history_msg;
         for (auto const& i : history) history_msg.history.emplace_back(i);

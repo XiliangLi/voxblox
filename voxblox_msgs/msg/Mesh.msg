@@ -6,3 +6,4 @@ std_msgs/Header header
 float32 block_edge_length
 
 voxblox_msgs/MeshBlock[] mesh_blocks
+nav_msgs/Path trajectory
