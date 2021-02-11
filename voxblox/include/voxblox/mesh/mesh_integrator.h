@@ -387,7 +387,6 @@ class MeshIntegrator {
 
     for (auto const& mesh_block_id : mesh_block_ids) {
       auto mesh = mesh_layer_->getMeshPtrByIndex(mesh_block_id);
-      std::cout << "-----block" << std::endl;
       for (size_t id = 0; id < mesh->indices.size(); id += 3) {
         ObsHistory history;
         for (int i = 0; i < 3; i++) {
@@ -397,12 +396,37 @@ class MeshIntegrator {
           history.insert(voxel->history.begin(), voxel->history.end());
         }
 
-        std::cout << "-----triangle" << std::endl;
-        for (auto his : history) std::cout << static_cast<int>(his) << " ";
-        std::cout << std::endl;
+        reduceHistory(&history);
         mesh->histories.emplace_back(history);
       }
     }
+  }
+
+  bool reduceHistory(ObsHistory* history) {
+    if (history->empty()) return false;
+    ObsHistory reduced_history;
+    int n = 0;
+    uint8_t start = *history->begin(), end = *history->begin();
+    for (auto t : *history) {
+      if (t - end > 4u) {
+        if (n > 2) {
+          reduced_history.emplace(start);
+          reduced_history.emplace(end);
+        }
+        n = 0;
+        end = t;
+        start = t;
+      } else {
+        end = t;
+        n++;
+      }
+    }
+    if (n > 2) {
+      reduced_history.emplace(start);
+      reduced_history.emplace(end);
+    }
+    *history = reduced_history;
+    return true;
   }
 
  protected:
