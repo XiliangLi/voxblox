@@ -174,6 +174,7 @@ inline void createConnectedMesh(
   if (connected_mesh->hasNormals()) {
     CHECK_EQ(connected_mesh->vertices.size(), connected_mesh->normals.size());
   }
+
 }
 
 inline void createConnectedMesh(

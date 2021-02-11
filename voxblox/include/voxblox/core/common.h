@@ -74,7 +74,7 @@ typedef AlignedVector<VertexIndex> VertexIndexList;
 typedef Eigen::Matrix<FloatingPoint, 3, 3> Triangle;
 typedef AlignedVector<Triangle> TriangleVector;
 
-typedef std::set<uint16_t> ObsHistory;
+typedef std::set<uint8_t> ObsHistory;
 
 // Transformation type for defining sensor orientation.
 typedef kindr::minimal::QuatTransformationTemplate<FloatingPoint>

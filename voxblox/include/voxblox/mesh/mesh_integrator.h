@@ -387,6 +387,7 @@ class MeshIntegrator {
 
     for (auto const& mesh_block_id : mesh_block_ids) {
       auto mesh = mesh_layer_->getMeshPtrByIndex(mesh_block_id);
+      std::cout << "-----block" << std::endl;
       for (size_t id = 0; id < mesh->indices.size(); id += 3) {
         ObsHistory history;
         for (int i = 0; i < 3; i++) {
@@ -395,6 +396,10 @@ class MeshIntegrator {
           CHECK(voxel != nullptr);
           history.insert(voxel->history.begin(), voxel->history.end());
         }
+
+        std::cout << "-----triangle" << std::endl;
+        for (auto his : history) std::cout << static_cast<int>(his) << " ";
+        std::cout << std::endl;
         mesh->histories.emplace_back(history);
       }
     }

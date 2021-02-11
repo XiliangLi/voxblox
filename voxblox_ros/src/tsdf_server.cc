@@ -455,7 +455,7 @@ void TsdfServer::insertPointcloud(
       publishMap();
       tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
       pointcloud_deintegration_queue_.clear();
-      tsdf_integrator_->resetObsCnt();
+      tsdf_integrator_->resetObsCnt(pointcloud_msg_in->header.stamp.toSec());
     }
     // So we have to process the queue anyway... Push this back.
     pointcloud_queue_.push(pointcloud_msg_in);
@@ -511,8 +511,8 @@ void TsdfServer::integratePointcloud(
     std::shared_ptr<const Pointcloud> ptcloud_C,
     std::shared_ptr<const Colors> colors, const bool is_freespace_pointcloud) {
   CHECK_EQ(ptcloud_C->size(), colors->size());
-  tsdf_integrator_->integratePointCloudWithObs(T_G_C, *ptcloud_C, *colors,
-                                               is_freespace_pointcloud);
+  tsdf_integrator_->integratePointCloudWithObs(
+      timestamp.toSec(), T_G_C, *ptcloud_C, *colors, is_freespace_pointcloud);
 
   if (pointcloud_deintegration_queue_length_ > 0 || submap_interval_ > 0.0) {
     pointcloud_deintegration_queue_.emplace_back(PointcloudDeintegrationPacket{
