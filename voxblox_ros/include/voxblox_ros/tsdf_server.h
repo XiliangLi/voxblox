@@ -21,6 +21,7 @@
 
 #include <voxblox/alignment/icp.h>
 #include <voxblox/core/tsdf_map.h>
+#include <voxblox/integrator/merge_integration.h>
 #include <voxblox/integrator/tsdf_integrator.h>
 #include <voxblox/io/layer_io.h>
 #include <voxblox/io/mesh_ply.h>
@@ -273,7 +274,7 @@ class TsdfServer {
   // TODO(victorr): Add description
   struct PointcloudDeintegrationPacket {
     const ros::Time timestamp;
-    const Transformation T_G_C;
+    Transformation T_G_C;
     std::shared_ptr<const Pointcloud> ptcloud_C;
     std::shared_ptr<const Colors> colors;
     const bool is_freespace_pointcloud;
@@ -332,6 +333,41 @@ class TsdfServer {
   } mesh_histroy_config;
 
   bool publish_mesh_with_history_ = false;
+
+  Transformation gravityAlignPose(const Transformation& input_pose) {
+    // Use the logarithmic map to get the pose's [x, y, z, r, p, y] components
+    Transformation::Vector6 T_vec = input_pose.log();
+
+    // Set the roll and pitch to zero
+    T_vec[3] = 0;
+    T_vec[4] = 0;
+
+    // Return the gravity aligned pose as a translation + quaternion,
+    // using the exponential map
+    return Transformation::exp(T_vec);
+  }
+
+  void transformLayerToSubmapFrame() {
+    if (pointcloud_deintegration_queue_.empty()) return;
+    AlignedVector<Transformation> trajectory;
+    for (auto const& pointcloud_packet : pointcloud_deintegration_queue_) {
+      trajectory.emplace_back(pointcloud_packet.T_G_C);
+    }
+    const size_t trajectory_middle_idx = trajectory.size() / 2;
+    Transformation T_odom_trajectory_middle_pose =
+        trajectory[trajectory_middle_idx];
+    const Transformation T_odom_submap = gravityAlignPose(
+        T_odom_trajectory_middle_pose.cast<voxblox::FloatingPoint>());
+    Layer<TsdfVoxel> old_tsdf_layer(tsdf_map_->getTsdfLayer());
+    tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
+    transformLayer(old_tsdf_layer, T_odom_submap.inverse(),
+                   tsdf_map_->getTsdfLayerPtr());
+
+    for (auto& pointcloud_packet : pointcloud_deintegration_queue_) {
+      pointcloud_packet.T_G_C =
+          T_odom_submap.inverse() * pointcloud_packet.T_G_C;
+    }
+  }
 
   void publishMeshWithHistory() {
     std::shared_ptr<MeshLayer> mesh_layer(

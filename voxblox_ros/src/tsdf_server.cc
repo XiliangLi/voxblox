@@ -514,9 +514,13 @@ void TsdfServer::integratePointcloud(
   tsdf_integrator_->integratePointCloudWithObs(
       timestamp.toSec(), T_G_C, *ptcloud_C, *colors, is_freespace_pointcloud);
 
-  if (pointcloud_deintegration_queue_length_ > 0 || submap_interval_ > 0.0) {
+  if (pointcloud_deintegration_queue_length_ > 0) {
     pointcloud_deintegration_queue_.emplace_back(PointcloudDeintegrationPacket{
         timestamp, T_G_C, ptcloud_C, colors, is_freespace_pointcloud});
+  } else if (submap_interval_ > 0.0) {
+    pointcloud_deintegration_queue_.emplace_back(PointcloudDeintegrationPacket{
+        timestamp, T_G_C, std::make_shared<Pointcloud>(Pointcloud()),
+        std::make_shared<Colors>(Colors()), is_freespace_pointcloud});
   }
 }
 
@@ -648,6 +652,7 @@ void TsdfServer::publishMap(bool reset_remote_map) {
   }
 
   if (publish_mesh_with_history_) {
+    transformLayerToSubmapFrame();
     publishMeshWithHistory();
   }
 
