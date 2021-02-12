@@ -362,11 +362,6 @@ class TsdfServer {
     tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
     transformLayer(old_tsdf_layer, T_odom_submap.inverse(),
                    tsdf_map_->getTsdfLayerPtr());
-
-    for (auto& pointcloud_packet : pointcloud_deintegration_queue_) {
-      pointcloud_packet.T_G_C =
-          T_odom_submap.inverse() * pointcloud_packet.T_G_C;
-    }
   }
 
   void publishMeshWithHistory() {
