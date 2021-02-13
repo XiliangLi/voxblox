@@ -364,16 +364,18 @@ class TsdfServer {
                    tsdf_map_->getTsdfLayerPtr());
   }
 
+  int max_gap_, min_n_;
   void publishMeshWithHistory() {
     std::shared_ptr<MeshLayer> mesh_layer(
         new MeshLayer(tsdf_map_->block_size()));
+    mesh_histroy_config.use_history = true;
     std::shared_ptr<MeshIntegrator<TsdfVoxel>> mesh_integrator(
         new MeshIntegrator<TsdfVoxel>(mesh_histroy_config,
                                       tsdf_map_->getTsdfLayerPtr(),
                                       mesh_layer.get()));
 
     mesh_integrator->generateMesh(false, true);
-    mesh_integrator->addHistoryToMesh();
+    // mesh_integrator->addHistoryToMesh(max_gap_, min_n_);
 
     voxblox_msgs::Mesh mesh_msg;
     generateVoxbloxMeshMsg(mesh_layer, color_mode_, &mesh_msg);

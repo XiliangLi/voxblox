@@ -485,6 +485,15 @@ inline TsdfVoxel Interpolator<TsdfVoxel>::interpVoxel(
   voxel.color.b = interpMember(q_vector, voxels, &getBlue);
   voxel.color.a = interpMember(q_vector, voxels, &getAlpha);
 
+  std::map<HistoryType, uint8_t> history_num;
+  for (size_t i = 0; i < 8; i++)
+    for (auto hi : (*voxels[i]).history) {
+      if (!history_num.count(hi)) history_num.emplace(hi, 0);
+      history_num[hi]++;
+    }
+  for (auto kv : history_num) {
+    if (kv.second > 3) voxel.history.emplace(kv.first);
+  }
   return voxel;
 }
 

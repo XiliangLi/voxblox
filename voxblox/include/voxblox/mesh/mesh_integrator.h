@@ -48,6 +48,7 @@ struct MeshIntegratorConfig {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   bool use_color = true;
+  bool use_history = false;
   float min_weight = 1e-4;
 
   size_t integrator_threads = std::thread::hardware_concurrency();
@@ -256,6 +257,9 @@ class MeshIntegrator {
     if (config_.use_color) {
       updateMeshColor(*block, mesh.get());
     }
+    if (config_.use_history) {
+      updateMeshHistory(*block, mesh.get());
+    }
 
     mesh->updated = true;
   }
@@ -381,7 +385,31 @@ class MeshIntegrator {
     }
   }
 
-  void addHistoryToMesh() {
+  void updateMeshHistory(const Block<VoxelType>& block, Mesh* mesh) {
+    DCHECK(mesh != nullptr);
+
+    mesh->histories.clear();
+    mesh->histories.resize(mesh->indices.size() / 3);
+
+    // Use nearest-neighbor search.
+    for (size_t i = 0; i < mesh->vertices.size(); i++) {
+      const Point& vertex = mesh->vertices[i];
+      VoxelIndex voxel_index = block.computeVoxelIndexFromCoordinates(vertex);
+      ObsHistory history;
+      if (block.isValidVoxelIndex(voxel_index)) {
+        const VoxelType& voxel = block.getVoxelByVoxelIndex(voxel_index);
+        utils::getHistoryIfValid(voxel, config_.min_weight, &history);
+      } else {
+        const typename Block<VoxelType>::ConstPtr neighbor_block =
+            sdf_layer_const_->getBlockPtrByCoordinates(vertex);
+        const VoxelType& voxel = neighbor_block->getVoxelByCoordinates(vertex);
+        utils::getHistoryIfValid(voxel, config_.min_weight, &history);
+      }
+      mesh->histories[i / 3].insert(history.begin(), history.end());
+    }
+  }
+
+  void addHistoryToMesh(int max_gap, int min_n) {
     BlockIndexList mesh_block_ids;
     mesh_layer_->getAllAllocatedMeshes(&mesh_block_ids);
 
@@ -396,20 +424,20 @@ class MeshIntegrator {
           history.insert(voxel->history.begin(), voxel->history.end());
         }
 
-        reduceHistory(&history);
+        //  reduceHistory(&history, max_gap, min_n);
         mesh->histories.emplace_back(history);
       }
     }
   }
 
-  bool reduceHistory(ObsHistory* history) {
+  bool reduceHistory(ObsHistory* history, int max_gap, int min_n) {
     if (history->empty()) return false;
     ObsHistory reduced_history;
     int n = 0;
     uint8_t start = *history->begin(), end = *history->begin();
     for (auto t : *history) {
-      if (t - end > 4u) {
-        if (n > 2) {
+      if (t - end > max_gap) {
+        if (n > min_n) {
           reduced_history.emplace(start);
           reduced_history.emplace(end);
         }

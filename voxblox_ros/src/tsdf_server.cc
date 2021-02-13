@@ -184,6 +184,9 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
 
   toggle_mapping_srv_ = nh_private_.advertiseService(
       "toggle_mapping", &TsdfServer::toogleMappingCallback, this);
+
+  nh_private_.param<int>("max_gap", max_gap_, 4);
+  nh_private_.param<int>("min_n", min_n_, 2);
 }
 
 void TsdfServer::getServerConfigFromRosParam(

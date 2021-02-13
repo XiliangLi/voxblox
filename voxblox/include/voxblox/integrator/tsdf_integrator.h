@@ -120,16 +120,43 @@ class TsdfIntegratorBase {
                                   const Colors& colors,
                                   const bool freespace_points = false,
                                   const bool deintegrate = false) {
-    obs_cnt_ = time == obs_time ? 0 : std::round((time - obs_time) / 0.05);
+    //   obs_cnt_ = time == obs_time ? 0 : std::round((time - obs_time) / 0.05);
     integratePointCloud(T_G_C, points_C, colors, freespace_points, deintegrate);
+    obs_cnt_++;
   }
 
-  void resetObsCnt(double time) { obs_time = time; }
+  void resetObsCnt(double time) { obs_cnt_ = 0; }
 
   /// Returns a CONST ref of the config.
   const Config& getConfig() const { return config_; }
 
   void setLayer(Layer<TsdfVoxel>* layer);
+
+  void checkHistory() {
+    BlockIndexList all_tsdf_blocks;
+    layer_->getAllAllocatedBlocks(&all_tsdf_blocks);
+
+    size_t n_history = 0, n_valid = 0;
+    for (const BlockIndex& block_index : all_tsdf_blocks) {
+      auto& block = layer_->getBlockByIndex(block_index);
+      auto num_voxels_per_block = block.num_voxels();
+
+      for (size_t lin_index = 0u; lin_index < num_voxels_per_block;
+           ++lin_index) {
+        auto voxel_index = block.computeVoxelIndexFromLinearIndex(lin_index);
+        auto global_voxel_index = getGlobalVoxelIndexFromBlockAndVoxelIndex(
+            block_index, voxel_index, layer_->voxels_per_side());
+        std::lock_guard<std::mutex> lock(mutexes_.get(global_voxel_index));
+        auto voxel = block.getVoxelByLinearIndex(lin_index);
+        if (voxel.history.size()) n_history++;
+        if (voxel.weight) n_valid++;
+        if (voxel.weight) CHECK(voxel.history.size());
+      }
+    }
+    LOG(INFO) << n_history << " / " << n_valid << " / "
+              << all_tsdf_blocks.size() * voxels_per_side_ * voxels_per_side_ *
+                     voxels_per_side_;
+  }
 
  protected:
   /// Thread safe.

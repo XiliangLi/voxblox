@@ -1,1 +1,1 @@
-uint8[] history
+uint16[] history
