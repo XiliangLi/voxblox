@@ -135,6 +135,19 @@ class TsdfServer {
   /// Overwrites the layer with what's coming from the topic!
   void tsdfMapCallback(const voxblox_msgs::Layer& layer_msg);
 
+  static Transformation gravityAlignPose(const Transformation& input_pose) {
+    // Use the logarithmic map to get the pose's [x, y, z, r, p, y] components
+    Transformation::Vector6 T_vec = input_pose.log();
+
+    // Set the roll and pitch to zero
+    T_vec[3] = 0;
+    T_vec[4] = 0;
+
+    // Return the gravity aligned pose as a translation + quaternion,
+    // using the exponential map
+    return Transformation::exp(T_vec);
+  }
+
  protected:
   /**
    * Gets the next pointcloud that has an available transform to process from
@@ -333,19 +346,6 @@ class TsdfServer {
   } mesh_histroy_config;
 
   bool publish_mesh_with_history_ = false;
-
-  Transformation gravityAlignPose(const Transformation& input_pose) {
-    // Use the logarithmic map to get the pose's [x, y, z, r, p, y] components
-    Transformation::Vector6 T_vec = input_pose.log();
-
-    // Set the roll and pitch to zero
-    T_vec[3] = 0;
-    T_vec[4] = 0;
-
-    // Return the gravity aligned pose as a translation + quaternion,
-    // using the exponential map
-    return Transformation::exp(T_vec);
-  }
 
   void transformLayerToSubmapFrame() {
     if (pointcloud_deintegration_queue_.empty()) return;
