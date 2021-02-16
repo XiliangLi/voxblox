@@ -42,7 +42,7 @@ void VoxbloxMultiMeshDisplay::processMessage(
     const voxblox_msgs::MultiMesh::ConstPtr& msg) {
   // Select the matching visual
   auto it = visuals_.find(msg->name_space);
-  if (msg->mesh.mesh_blocks.empty()) {
+  if (msg->mesh.mesh_blocks.empty() && !msg->update_pose_only) {
     // if blocks are empty the visual is to be cleared.
     if (it != visuals_.end()) {
       visibility_fields_->removeField(it->first);
@@ -71,6 +71,7 @@ void VoxbloxMultiMeshDisplay::processMessage(
         alpha = std::numeric_limits<uint8_t>::max();
       }
 
+      if (msg->update_pose_only) return;
       // convert to normal mesh msg for visual
       voxblox_msgs::MeshPtr mesh(new voxblox_msgs::Mesh);
       *mesh = msg->mesh;

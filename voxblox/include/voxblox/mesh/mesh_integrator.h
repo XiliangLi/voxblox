@@ -424,7 +424,7 @@ class MeshIntegrator {
           history.insert(voxel->history.begin(), voxel->history.end());
         }
 
-        //  reduceHistory(&history, max_gap, min_n);
+        reduceHistory(&history, max_gap, min_n);
         mesh->histories.emplace_back(history);
       }
     }

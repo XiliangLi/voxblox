@@ -12,3 +12,5 @@ uint8 alpha
 # The message containing the voxblox mesh.
 # NOTE: if 'mesh.mesh_blocks' is empty the according visual will be cleared.
 voxblox_msgs/Mesh mesh
+
+bool update_pose_only

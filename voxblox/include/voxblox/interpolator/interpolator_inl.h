@@ -492,7 +492,7 @@ inline TsdfVoxel Interpolator<TsdfVoxel>::interpVoxel(
       history_num[hi]++;
     }
   for (auto kv : history_num) {
-    if (kv.second > 3) voxel.history.emplace(kv.first);
+    if (kv.second > 5) voxel.history.emplace(kv.first);
   }
   return voxel;
 }

@@ -120,12 +120,11 @@ class TsdfIntegratorBase {
                                   const Colors& colors,
                                   const bool freespace_points = false,
                                   const bool deintegrate = false) {
-    //   obs_cnt_ = time == obs_time ? 0 : std::round((time - obs_time) / 0.05);
+    obs_cnt_ = time == obs_time ? 0 : std::round((time - obs_time) / 0.05);
     integratePointCloud(T_G_C, points_C, colors, freespace_points, deintegrate);
-    obs_cnt_++;
   }
 
-  void resetObsCnt(double time) { obs_cnt_ = 0; }
+  void resetObsCnt(double time) { obs_time = time; }
 
   /// Returns a CONST ref of the config.
   const Config& getConfig() const { return config_; }
