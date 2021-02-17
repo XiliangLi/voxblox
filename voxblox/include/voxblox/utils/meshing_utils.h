@@ -61,6 +61,22 @@ inline bool getColorIfValid(const EsdfVoxel& voxel,
   return true;
 }
 
+template <typename VoxelType>
+bool getHistoryIfValid(const VoxelType& voxel, const FloatingPoint min_weight,
+                       ObsHistory* history);
+
+template <>
+inline bool getHistoryIfValid(const TsdfVoxel& voxel,
+                              const FloatingPoint min_weight,
+                              ObsHistory* history) {
+  DCHECK(history != nullptr);
+  if (voxel.weight <= min_weight) {
+    return false;
+  }
+  *history = voxel.history;
+  return true;
+}
+
 }  // namespace utils
 }  // namespace voxblox
 

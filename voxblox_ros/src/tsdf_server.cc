@@ -50,7 +50,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
       map_needs_pruning_(false),
       publish_map_with_trajectory_(false),
       num_subscribers_active_tsdf_(0),
-      map_running_(true) {
+      map_running_(true),
+      submap_interval_(0.0) {
   getServerConfigFromRosParam(nh_private);
 
   // Advertise topics.
@@ -74,6 +75,14 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
                                   &TsdfServer::insertPointcloud, this);
 
   mesh_pub_ = nh_private_.advertise<voxblox_msgs::Mesh>("mesh", 1, true);
+
+  nh_private_.param("publish_mesh_with_history", publish_mesh_with_history_,
+                    publish_mesh_with_history_);
+
+  LOG(INFO) << publish_mesh_with_history_;
+  if (publish_mesh_with_history_)
+    mesh_with_history_pub_ = nh_private_.advertise<voxblox_msgs::Mesh>(
+        "mesh_with_history", 10, true);
 
   // Publishing/subscribing to a layer from another node (when using this as
   // a library, for example within a planner).
@@ -149,6 +158,13 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
   nh_private_.param("publish_map_every_n_sec", publish_map_every_n_sec,
                     publish_map_every_n_sec);
 
+  nh_private_.param("submap_interval", submap_interval_, submap_interval_);
+
+  if (submap_interval_ > 0.0) {
+    CHECK_EQ(pointcloud_deintegration_queue_length_, 0);
+    CHECK_EQ(publish_map_every_n_sec, 0.0);
+  }
+
   if (publish_map_every_n_sec > 0.0) {
     publish_map_timer_ =
         nh_private_.createTimer(ros::Duration(publish_map_every_n_sec),
@@ -169,11 +185,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
   toggle_mapping_srv_ = nh_private_.advertiseService(
       "toggle_mapping", &TsdfServer::toogleMappingCallback, this);
 
-  nh_private.param("submap_interval", submap_interval_, submap_interval_);
-
-  if (submap_interval_ > 0.0)
-    CHECK(pointcloud_deintegration_queue_length_ == 0 &&
-          publish_map_every_n_sec == 0);
+  nh_private_.param<int>("max_gap", max_gap_, 4);
+  nh_private_.param<int>("min_n", min_n_, 2);
 }
 
 void TsdfServer::getServerConfigFromRosParam(
@@ -445,6 +458,7 @@ void TsdfServer::insertPointcloud(
       publishMap();
       tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
       pointcloud_deintegration_queue_.clear();
+      tsdf_integrator_->resetObsCnt(pointcloud_msg_in->header.stamp.toSec());
     }
     // So we have to process the queue anyway... Push this back.
     pointcloud_queue_.push(pointcloud_msg_in);
@@ -500,12 +514,16 @@ void TsdfServer::integratePointcloud(
     std::shared_ptr<const Pointcloud> ptcloud_C,
     std::shared_ptr<const Colors> colors, const bool is_freespace_pointcloud) {
   CHECK_EQ(ptcloud_C->size(), colors->size());
-  tsdf_integrator_->integratePointCloud(T_G_C, *ptcloud_C, *colors,
-                                        is_freespace_pointcloud);
+  tsdf_integrator_->integratePointCloudWithObs(
+      timestamp.toSec(), T_G_C, *ptcloud_C, *colors, is_freespace_pointcloud);
 
-  if (pointcloud_deintegration_queue_length_ > 0 || submap_interval_ > 0.0) {
+  if (pointcloud_deintegration_queue_length_ > 0) {
     pointcloud_deintegration_queue_.emplace_back(PointcloudDeintegrationPacket{
         timestamp, T_G_C, ptcloud_C, colors, is_freespace_pointcloud});
+  } else if (submap_interval_ > 0.0) {
+    pointcloud_deintegration_queue_.emplace_back(PointcloudDeintegrationPacket{
+        timestamp, T_G_C, std::make_shared<Pointcloud>(Pointcloud()),
+        std::make_shared<Colors>(Colors()), is_freespace_pointcloud});
   }
 }
 
@@ -634,6 +652,11 @@ void TsdfServer::publishSlices() {
 void TsdfServer::publishMap(bool reset_remote_map) {
   if (map_needs_pruning_) {
     pruneMap();
+  }
+
+  if (publish_mesh_with_history_) {
+    //transformLayerToSubmapFrame();
+    publishMeshWithHistory();
   }
 
   if (!publish_tsdf_map_) {

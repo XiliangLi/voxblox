@@ -18,6 +18,7 @@ void mergeVoxelAIntoVoxelB(const TsdfVoxel& voxel_A, TsdfVoxel* voxel_B) {
                                            voxel_B->color, voxel_B->weight);
 
     voxel_B->weight = combined_weight;
+    voxel_B->history.insert(voxel_A.history.begin(), voxel_A.history.end());
   }
 }
 

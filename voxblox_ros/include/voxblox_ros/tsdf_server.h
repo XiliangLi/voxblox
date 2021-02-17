@@ -6,6 +6,7 @@
 #include <queue>
 #include <string>
 
+#include <minkindr_conversions/kindr_msg.h>
 #include <pcl/conversions.h>
 #include <pcl/filters/filter.h>
 #include <pcl/point_types.h>
@@ -20,6 +21,7 @@
 
 #include <voxblox/alignment/icp.h>
 #include <voxblox/core/tsdf_map.h>
+#include <voxblox/integrator/merge_integration.h>
 #include <voxblox/integrator/tsdf_integrator.h>
 #include <voxblox/io/layer_io.h>
 #include <voxblox/io/mesh_ply.h>
@@ -133,6 +135,19 @@ class TsdfServer {
   /// Overwrites the layer with what's coming from the topic!
   void tsdfMapCallback(const voxblox_msgs::Layer& layer_msg);
 
+  static Transformation gravityAlignPose(const Transformation& input_pose) {
+    // Use the logarithmic map to get the pose's [x, y, z, r, p, y] components
+    Transformation::Vector6 T_vec = input_pose.log();
+
+    // Set the roll and pitch to zero
+    T_vec[3] = 0;
+    T_vec[4] = 0;
+
+    // Return the gravity aligned pose as a translation + quaternion,
+    // using the exponential map
+    return Transformation::exp(T_vec);
+  }
+
  protected:
   /**
    * Gets the next pointcloud that has an available transform to process from
@@ -157,6 +172,7 @@ class TsdfServer {
   ros::Publisher occupancy_marker_pub_;
   ros::Publisher icp_transform_pub_;
   ros::Publisher reprojected_pointcloud_pub_;
+  ros::Publisher mesh_with_history_pub_;
 
   /// Publish the complete map for other nodes to consume.
   ros::Publisher tsdf_map_pub_;
@@ -186,9 +202,8 @@ class TsdfServer {
    * frame.
    */
   std::string world_frame_;
-  /**
-   * Name of the ICP corrected frame. Publishes TF and transform topic to this
-   * if ICP on.
+  /** * Name of the ICP corrected frame. Publishes TF and transform topic to
+   * this * if ICP on.
    */
   std::string icp_corrected_frame_;
   /// Name of the pose in the ICP correct Frame.
@@ -272,7 +287,7 @@ class TsdfServer {
   // TODO(victorr): Add description
   struct PointcloudDeintegrationPacket {
     const ros::Time timestamp;
-    const Transformation T_G_C;
+    Transformation T_G_C;
     std::shared_ptr<const Pointcloud> ptcloud_C;
     std::shared_ptr<const Colors> colors;
     const bool is_freespace_pointcloud;
@@ -297,7 +312,7 @@ class TsdfServer {
   ros::Timer active_map_pub_timer_;
   ros::Publisher active_tsdf_pub_;
   int num_subscribers_active_tsdf_;
-  virtual void activeMapPubCallback(const ros::TimerEvent& event) {
+  virtual void activeMapPubCallback(const ros::TimerEvent&) {
     int tsdf_subscribers = active_tsdf_pub_.getNumSubscribers();
     if (tsdf_subscribers > 0) {
       voxblox_msgs::Layer tsdf_layer_msg;
@@ -326,6 +341,57 @@ class TsdfServer {
   float submap_interval_;
   ros::Time last_submap_stamp_;
   std::vector<Transformation> pose_history_queue_;
+
+  struct MeshHistoryConfig : MeshIntegratorConfig {
+  } mesh_histroy_config;
+
+  bool publish_mesh_with_history_ = false;
+
+  void transformLayerToSubmapFrame() {
+    if (pointcloud_deintegration_queue_.empty()) return;
+    AlignedVector<Transformation> trajectory;
+    for (auto const& pointcloud_packet : pointcloud_deintegration_queue_) {
+      trajectory.emplace_back(pointcloud_packet.T_G_C);
+    }
+    const size_t trajectory_middle_idx = trajectory.size() / 2;
+    Transformation T_odom_trajectory_middle_pose =
+        trajectory[trajectory_middle_idx];
+    const Transformation T_odom_submap = gravityAlignPose(
+        T_odom_trajectory_middle_pose.cast<voxblox::FloatingPoint>());
+    Layer<TsdfVoxel> old_tsdf_layer(tsdf_map_->getTsdfLayer());
+    tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
+    transformLayer(old_tsdf_layer, T_odom_submap.inverse(),
+                   tsdf_map_->getTsdfLayerPtr());
+  }
+
+  int max_gap_, min_n_;
+  void publishMeshWithHistory() {
+    std::shared_ptr<MeshLayer> mesh_layer(
+        new MeshLayer(tsdf_map_->block_size()));
+    mesh_histroy_config.use_history = true;
+    std::shared_ptr<MeshIntegrator<TsdfVoxel>> mesh_integrator(
+        new MeshIntegrator<TsdfVoxel>(mesh_histroy_config,
+                                      tsdf_map_->getTsdfLayerPtr(),
+                                      mesh_layer.get()));
+
+    mesh_integrator->generateMesh(false, true);
+
+    voxblox_msgs::Mesh mesh_msg;
+    generateVoxbloxMeshMsg(mesh_layer, color_mode_, &mesh_msg);
+    mesh_msg.header.frame_id = world_frame_;
+
+    for (const PointcloudDeintegrationPacket& pointcloud_queue_packet :
+         pointcloud_deintegration_queue_) {
+      geometry_msgs::PoseStamped pose_msg;
+      pose_msg.header.frame_id = world_frame_;
+      pose_msg.header.stamp = pointcloud_queue_packet.timestamp;
+      tf::poseKindrToMsg(pointcloud_queue_packet.T_G_C.cast<double>(),
+                         &pose_msg.pose);
+      mesh_msg.trajectory.poses.emplace_back(pose_msg);
+    }
+
+    mesh_with_history_pub_.publish(mesh_msg);
+  }
 };
 
 }  // namespace voxblox

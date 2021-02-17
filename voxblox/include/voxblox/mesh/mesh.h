@@ -57,6 +57,7 @@ struct Mesh {
   inline bool hasNormals() const { return !normals.empty(); }
   inline bool hasColors() const { return !colors.empty(); }
   inline bool hasTriangles() const { return !indices.empty(); }
+  inline bool hasHistory() const { return !histories.empty(); }
 
   inline size_t size() const { return vertices.size(); }
   inline size_t getMemorySize() const {
@@ -153,6 +154,7 @@ struct Mesh {
   VertexIndexList indices;
   Pointcloud normals;
   Colors colors;
+  std::vector<ObsHistory> histories;
 
   FloatingPoint block_size;
   Point origin;

@@ -196,7 +196,9 @@ inline void generateVoxbloxMeshMsg(MeshLayer* mesh_layer, ColorMode color_mode,
 
       // check all points are in range [0, 1.0]
       CHECK_LE(normalized_verticies.squaredNorm(), 1.0f);
-      CHECK((normalized_verticies.array() >= 0.0).all());
+      CHECK((normalized_verticies.array() >= 0.0).all())
+          << mesh_layer->block_size_inv() << " " << mesh->vertices[i] << " "
+          << block_index << " " << normalized_verticies;
 
       // convert to uint16_t fixed point representation
       mesh_block.x.push_back(std::numeric_limits<uint16_t>::max() *
@@ -215,6 +217,14 @@ inline void generateVoxbloxMeshMsg(MeshLayer* mesh_layer, ColorMode color_mode,
                                color_msg.g);
         mesh_block.b.push_back(std::numeric_limits<uint8_t>::max() *
                                color_msg.b);
+      }
+    }
+
+    if (mesh->hasHistory()) {
+      for (auto const& history : mesh->histories) {
+        voxblox_msgs::ObsHistory history_msg;
+        for (auto const& i : history) history_msg.history.emplace_back(i);
+        mesh_block.history.emplace_back(history_msg);
       }
     }
 
