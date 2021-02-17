@@ -375,10 +375,10 @@ class TsdfServer {
                                       mesh_layer.get()));
 
     mesh_integrator->generateMesh(false, true);
-    // mesh_integrator->addHistoryToMesh(max_gap_, min_n_);
 
     voxblox_msgs::Mesh mesh_msg;
     generateVoxbloxMeshMsg(mesh_layer, color_mode_, &mesh_msg);
+    mesh_msg.header.frame_id = world_frame_;
 
     for (const PointcloudDeintegrationPacket& pointcloud_queue_packet :
          pointcloud_deintegration_queue_) {

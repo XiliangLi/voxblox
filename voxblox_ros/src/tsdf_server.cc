@@ -655,7 +655,7 @@ void TsdfServer::publishMap(bool reset_remote_map) {
   }
 
   if (publish_mesh_with_history_) {
-    transformLayerToSubmapFrame();
+    //transformLayerToSubmapFrame();
     publishMeshWithHistory();
   }
 
