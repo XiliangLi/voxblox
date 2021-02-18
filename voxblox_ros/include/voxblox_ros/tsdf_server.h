@@ -342,8 +342,7 @@ class TsdfServer {
   ros::Time last_submap_stamp_;
   std::vector<Transformation> pose_history_queue_;
 
-  struct MeshHistoryConfig : MeshIntegratorConfig {
-  } mesh_histroy_config;
+  MeshIntegratorConfig mesh_histroy_config_;
 
   bool publish_mesh_with_history_ = false;
 
@@ -368,14 +367,21 @@ class TsdfServer {
   void publishMeshWithHistory() {
     std::shared_ptr<MeshLayer> mesh_layer(
         new MeshLayer(tsdf_map_->block_size()));
-    mesh_histroy_config.use_history = true;
+    mesh_histroy_config_.use_history = true;
     std::shared_ptr<MeshIntegrator<TsdfVoxel>> mesh_integrator(
-        new MeshIntegrator<TsdfVoxel>(mesh_histroy_config,
+        new MeshIntegrator<TsdfVoxel>(mesh_histroy_config_,
                                       tsdf_map_->getTsdfLayerPtr(),
                                       mesh_layer.get()));
 
     mesh_integrator->generateMesh(false, true);
-    mesh_integrator->addHistoryToMesh(max_gap_, min_n_);
+    double start_time =
+        pointcloud_deintegration_queue_.begin()->timestamp.toSec();
+    int stamp_offset =
+        start_time == tsdf_integrator_->obs_time
+            ? 0
+            : std::round((start_time - tsdf_integrator_->obs_time) / 0.05);
+
+    mesh_integrator->addHistoryToMesh(stamp_offset, max_gap_, min_n_);
 
     voxblox_msgs::Mesh mesh_msg;
     generateVoxbloxMeshMsg(mesh_layer, color_mode_, &mesh_msg);

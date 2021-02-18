@@ -187,6 +187,8 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
 
   nh_private_.param<int>("max_gap", max_gap_, 4);
   nh_private_.param<int>("min_n", min_n_, 2);
+
+  mesh_histroy_config_ = getMeshIntegratorConfigFromRosParam(nh_private_);
 }
 
 void TsdfServer::getServerConfigFromRosParam(
@@ -655,7 +657,7 @@ void TsdfServer::publishMap(bool reset_remote_map) {
   }
 
   if (publish_mesh_with_history_) {
-    //transformLayerToSubmapFrame();
+    // transformLayerToSubmapFrame();
     publishMeshWithHistory();
   }
 

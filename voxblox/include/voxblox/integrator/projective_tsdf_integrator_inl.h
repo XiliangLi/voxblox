@@ -310,6 +310,7 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::updateTsdfVoxel(
                               observation_weight) /
                          new_voxel_weight;
   tsdf_voxel->weight = new_voxel_weight;
+  tsdf_voxel->history.emplace(obs_cnt_);
 }
 
 template <InterpolationScheme interpolation_scheme>

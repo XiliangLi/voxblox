@@ -115,16 +115,19 @@ class TsdfIntegratorBase {
                                    const bool freespace_points = false,
                                    const bool deintegrate = false) = 0;
 
+  int obs_cnt_;
+  double obs_time;
   void integratePointCloudWithObs(double time, const Transformation& T_G_C,
                                   const Pointcloud& points_C,
                                   const Colors& colors,
                                   const bool freespace_points = false,
                                   const bool deintegrate = false) {
+    if (obs_time == 0) obs_time = time;
     obs_cnt_ = time == obs_time ? 0 : std::round((time - obs_time) / 0.05);
     integratePointCloud(T_G_C, points_C, colors, freespace_points, deintegrate);
   }
 
-  void resetObsCnt(double time) { obs_time = time; }
+  void resetObsCnt(double time) {}
 
   /// Returns a CONST ref of the config.
   const Config& getConfig() const { return config_; }
@@ -246,8 +249,6 @@ class TsdfIntegratorBase {
    */
   ApproxHashArray<12, std::mutex, GlobalIndex, LongIndexHash> mutexes_;
 
-  int obs_cnt_;
-  double obs_time;
 };
 
 /// Creates a TSDF integrator of the desired type.
