@@ -386,27 +386,27 @@ class MeshIntegrator {
   }
 
   void updateMeshHistory(const Block<VoxelType>& block, Mesh* mesh) {
-    DCHECK(mesh != nullptr);
+//  DCHECK(mesh != nullptr);
 
-    mesh->histories.clear();
-    mesh->histories.resize(mesh->indices.size() / 3);
+//  mesh->histories.clear();
+//  mesh->histories.resize(mesh->indices.size() / 3);
 
-    // Use nearest-neighbor search.
-    for (size_t i = 0; i < mesh->vertices.size(); i++) {
-      const Point& vertex = mesh->vertices[i];
-      VoxelIndex voxel_index = block.computeVoxelIndexFromCoordinates(vertex);
-      ObsHistory history;
-      if (block.isValidVoxelIndex(voxel_index)) {
-        const VoxelType& voxel = block.getVoxelByVoxelIndex(voxel_index);
-        utils::getHistoryIfValid(voxel, config_.min_weight, &history);
-      } else {
-        const typename Block<VoxelType>::ConstPtr neighbor_block =
-            sdf_layer_const_->getBlockPtrByCoordinates(vertex);
-        const VoxelType& voxel = neighbor_block->getVoxelByCoordinates(vertex);
-        utils::getHistoryIfValid(voxel, config_.min_weight, &history);
-      }
-      mesh->histories[i / 3].insert(history.begin(), history.end());
-    }
+//  // Use nearest-neighbor search.
+//  for (size_t i = 0; i < mesh->vertices.size(); i++) {
+//    const Point& vertex = mesh->vertices[i];
+//    VoxelIndex voxel_index = block.computeVoxelIndexFromCoordinates(vertex);
+//    ObsHistory history;
+//    if (block.isValidVoxelIndex(voxel_index)) {
+//      const VoxelType& voxel = block.getVoxelByVoxelIndex(voxel_index);
+//      utils::getHistoryIfValid(voxel, config_.min_weight, &history);
+//    } else {
+//      const typename Block<VoxelType>::ConstPtr neighbor_block =
+//          sdf_layer_const_->getBlockPtrByCoordinates(vertex);
+//      const VoxelType& voxel = neighbor_block->getVoxelByCoordinates(vertex);
+//      utils::getHistoryIfValid(voxel, config_.min_weight, &history);
+//    }
+//    mesh->histories[i / 3].insert(history.begin(), history.end());
+//  }
   }
 
   void addHistoryToMesh(int max_gap, int min_n) {
@@ -424,7 +424,7 @@ class MeshIntegrator {
           history.insert(voxel->history.begin(), voxel->history.end());
         }
 
-        reduceHistory(&history, max_gap, min_n);
+        //reduceHistory(&history, max_gap, min_n);
         mesh->histories.emplace_back(history);
       }
     }

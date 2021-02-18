@@ -208,12 +208,12 @@ void TsdfIntegratorBase::updateTsdfVoxel(const Point& origin,
   if (std::abs(sdf) < config_.default_truncation_distance) {
     tsdf_voxel->color = Color::blendTwoColors(
         tsdf_voxel->color, tsdf_voxel->weight, color, updated_weight);
-    tsdf_voxel->history.emplace(obs_cnt_);
   }
   tsdf_voxel->distance =
       (new_sdf > 0.0) ? std::min(config_.default_truncation_distance, new_sdf)
                       : std::max(-config_.default_truncation_distance, new_sdf);
   tsdf_voxel->weight = std::min(config_.max_weight, new_weight);
+  tsdf_voxel->history.emplace(obs_cnt_);
 }
 
 // Thread safe.
