@@ -346,6 +346,23 @@ class TsdfServer {
 
   bool publish_mesh_with_history_ = false;
 
+  ros::Timer create_new_submap_timer_;
+  void createNewSubmapEvent(const ros::TimerEvent& /*event*/) {
+    createNewSubmap();
+  }
+  void createNewSubmap() {
+    if (submap_interval_ > 0.0 &&
+        (last_msg_time_ptcloud_ - last_submap_stamp_).toSec() >
+            submap_interval_) {
+      // switch to new submap
+      last_submap_stamp_ = last_msg_time_ptcloud_;
+      publishMap();
+      tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
+      pointcloud_deintegration_queue_.clear();
+      tsdf_integrator_->resetObsCnt(ros::Time::now().toSec());
+    }
+  }
+
   void transformLayerToSubmapFrame() {
     if (pointcloud_deintegration_queue_.empty()) return;
     AlignedVector<Transformation> trajectory;

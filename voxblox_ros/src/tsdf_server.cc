@@ -189,6 +189,12 @@ TsdfServer::TsdfServer(const ros::NodeHandle& nh,
   nh_private_.param<int>("min_n", min_n_, 2);
 
   mesh_histroy_config_ = getMeshIntegratorConfigFromRosParam(nh_private_);
+
+  if (submap_interval_ > 0) {
+    create_new_submap_timer_ =
+        nh_private_.createTimer(ros::Duration(submap_interval_),
+                                &TsdfServer::createNewSubmapEvent, this);
+  }
 }
 
 void TsdfServer::getServerConfigFromRosParam(
@@ -452,16 +458,6 @@ void TsdfServer::insertPointcloud(
       min_time_between_msgs_) {
     last_msg_time_ptcloud_ = pointcloud_msg_in->header.stamp;
 
-    if (submap_interval_ > 0.0 &&
-        (last_msg_time_ptcloud_ - last_submap_stamp_).toSec() >
-            submap_interval_) {
-      // switch to new submap
-      last_submap_stamp_ = last_msg_time_ptcloud_;
-      publishMap();
-      tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
-      pointcloud_deintegration_queue_.clear();
-      tsdf_integrator_->resetObsCnt(pointcloud_msg_in->header.stamp.toSec());
-    }
     // So we have to process the queue anyway... Push this back.
     pointcloud_queue_.push(pointcloud_msg_in);
   }
