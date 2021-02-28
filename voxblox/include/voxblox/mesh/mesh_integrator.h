@@ -423,11 +423,22 @@ class MeshIntegrator {
               mesh->vertices[id + i]);
           CHECK(voxel != nullptr);
           history.insert(voxel->history.begin(), voxel->history.end());
-          for (auto const& stamp : voxel->history)
-            if (stamp >= offset) history.emplace(stamp - offset);
         }
 
-        // reduceHistory(&history, max_gap, min_n);
+     // LOG(INFO) << "original history: ------------------ ";
+     // for (auto h : history) std::cout << h << " ";
+     // std::cout << std::endl;
+        reduceHistory(&history, max_gap, min_n);
+     // LOG(INFO) << "reduced history: ------------------ ";
+     // for (auto h : history) std::cout << h << " ";
+     // std::cout << std::endl;
+     // LOG(INFO) << "recovered history: ------------------ ";
+     // std::vector<HistoryType> history_v(history.begin(), history.end());
+     // for (size_t i = 0; i < history_v.size(); i += 2) {
+     //   for (size_t j = history_v[i]; j <= history_v[i + 1]; j++)
+     //     std::cout << j << " ";
+     // }
+     // std::cout << std::endl;
         mesh->histories.emplace_back(history);
       }
     }

@@ -127,7 +127,7 @@ class TsdfIntegratorBase {
     integratePointCloud(T_G_C, points_C, colors, freespace_points, deintegrate);
   }
 
-  void resetObsCnt(double time) {}
+  void resetObsCnt(double time) { obs_time = 0; }
 
   /// Returns a CONST ref of the config.
   const Config& getConfig() const { return config_; }
@@ -248,7 +248,6 @@ class TsdfIntegratorBase {
    * (num_threads / (2^n)). For 8 threads and 12 bits this gives 0.2%.
    */
   ApproxHashArray<12, std::mutex, GlobalIndex, LongIndexHash> mutexes_;
-
 };
 
 /// Creates a TSDF integrator of the desired type.
