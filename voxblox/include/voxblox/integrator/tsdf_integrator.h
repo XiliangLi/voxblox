@@ -206,7 +206,7 @@ class TsdfIntegratorBase {
   void updateTsdfVoxel(const Point& origin, const Point& point_G,
                        const GlobalIndex& global_voxel_index,
                        const Color& color, const float weight,
-                       TsdfVoxel* tsdf_voxel, const bool deintegrate);
+                       TsdfVoxel* tsdf_voxel, const bool deintegrate = false);
 
   /// Calculates TSDF distance, Thread safe.
   float computeDistance(const Point& origin, const Point& point_G,

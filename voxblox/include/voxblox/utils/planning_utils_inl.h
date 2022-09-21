@@ -92,7 +92,7 @@ void fillSphereAroundPoint(const Point& center, const FloatingPoint radius,
         voxel.observed = true;
         voxel.hallucinated = true;
         voxel.fixed = true;
-        block_ptr->updated().set();
+        // block_ptr->updated().set();
         block_ptr->has_data() = true;
       }
     }
@@ -127,7 +127,8 @@ void clearSphereAroundPoint(const Point& center, const FloatingPoint radius,
         voxel.observed = true;
         voxel.hallucinated = true;
         voxel.fixed = true;
-        block_ptr->updated().set();
+        // block_ptr->updated().set();
+        block_ptr->updated() = true;
         block_ptr->has_data() = true;
       }
     }

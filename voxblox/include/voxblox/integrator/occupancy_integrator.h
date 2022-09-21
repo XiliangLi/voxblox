@@ -147,7 +147,8 @@ class OccupancyIntegrator {
 
       if (!block || block_idx != last_block_idx) {
         block = layer_->allocateBlockPtrByIndex(block_idx);
-        block->updated().set();
+        // block->updated().set();
+        block->updated() = true;
         last_block_idx = block_idx;
       }
 
@@ -165,7 +166,8 @@ class OccupancyIntegrator {
 
       if (!block || block_idx != last_block_idx) {
         block = layer_->allocateBlockPtrByIndex(block_idx);
-        block->updated().set();
+        // block->updated().set();
+        block->updated() = true;
         last_block_idx = block_idx;
       }
 

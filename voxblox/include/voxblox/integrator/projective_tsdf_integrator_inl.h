@@ -210,7 +210,8 @@ void ProjectiveTsdfIntegrator<interpolation_scheme>::updateTsdfBlocks(
   for (const voxblox::BlockIndex &block_index : touched_block_indices) {
     voxblox::Block<TsdfVoxel>::Ptr block_ptr =
         layer_->getBlockPtrByIndex(block_index);
-    block_ptr->updated().set();
+    // block_ptr->updated().set();
+    block_ptr->updated() = true;
 
     for (size_t linear_index = 0u; linear_index < num_voxels_per_block_;
          ++linear_index) {

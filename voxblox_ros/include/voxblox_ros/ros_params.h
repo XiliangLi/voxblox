@@ -10,7 +10,31 @@
 #include <voxblox/integrator/tsdf_integrator.h>
 #include <voxblox/mesh/mesh_integrator.h>
 
+#include <global_segment_map/label_tsdf_map.h>
+#include <global_segment_map/label_tsdf_integrator.h>
+
 namespace voxblox {
+
+inline LabelTsdfMap::Config getLabelTsdfMapConfigFromRosParam(
+    const ros::NodeHandle& nh_private) {
+  LabelTsdfMap::Config label_tsdf_config;
+  double voxel_size = label_tsdf_config.voxel_size;
+  int voxels_per_side = label_tsdf_config.voxels_per_side;
+
+  nh_private.param<double>("voxblox/voxel_size", voxel_size, voxel_size);
+  nh_private.param<int>("voxblox/voxels_per_side", voxels_per_side,
+                                                   voxels_per_side);
+  if (!isPowerOfTwo(voxels_per_side)) {
+    LOG(ERROR)
+        << "voxels_per_side must be a power of 2, setting to default value.";
+    voxels_per_side = label_tsdf_config.voxels_per_side;
+  }
+
+  label_tsdf_config.voxels_per_side = voxels_per_side;
+  label_tsdf_config.voxel_size = static_cast<FloatingPoint>(voxel_size);
+
+  return label_tsdf_config;                                                  
+}  
 
 inline TsdfMap::Config getTsdfMapConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
@@ -59,12 +83,14 @@ inline ICP::Config getICPConfigFromRosParam(const ros::NodeHandle& nh_private) {
 inline TsdfIntegratorBase::Config getTsdfIntegratorConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
   TsdfIntegratorBase::Config integrator_config;
+  // LabelTsdfIntegrator::Config integrator_config;
 
   integrator_config.voxel_carving_enabled = true;
+  FloatingPoint truncation_distance_factor = 5.0f;
 
   const TsdfMap::Config tsdf_config = getTsdfMapConfigFromRosParam(nh_private);
   integrator_config.default_truncation_distance =
-      tsdf_config.tsdf_voxel_size * 4;
+      tsdf_config.tsdf_voxel_size * truncation_distance_factor;
 
   double truncation_distance = integrator_config.default_truncation_distance;
   double max_weight = integrator_config.max_weight;
@@ -124,8 +150,26 @@ inline TsdfIntegratorBase::Config getTsdfIntegratorConfigFromRosParam(
                    integrator_config.use_missing_points_for_clearing,
                    integrator_config.use_missing_points_for_clearing);
 
+  // add voxblox_pp params
+  bool factorFlag = nh_private.param<FloatingPoint>("truncation_distance_factor",
+                                                      truncation_distance_factor,
+                                                      truncation_distance_factor);
+
+  std::string method("merged");
+  nh_private.param<std::string>("method", method, method);
+  if(method.compare("merged") == 0) {
+    integrator_config.enable_anti_grazing = false;
+  } else if(method.compare("merged_discard") == 0) {
+    integrator_config.enable_anti_grazing = true;
+  } else {
+    integrator_config.enable_anti_grazing = false;
+  }
+  
+
   integrator_config.default_truncation_distance =
       static_cast<float>(truncation_distance);
+  if(factorFlag) integrator_config.default_truncation_distance =
+      static_cast<float>(tsdf_config.tsdf_voxel_size * truncation_distance_factor);
   integrator_config.max_weight = static_cast<float>(max_weight);
   integrator_config.integrator_threads = integrator_threads;
 

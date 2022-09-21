@@ -169,15 +169,19 @@ class Block {
 
   bool has_data() const { return has_data_; }
 
-  const std::bitset<Update::kCount>& updated() const { return updated_; }
-  std::bitset<Update::kCount>& updated() { return updated_; }
+  // const std::bitset<Update::kCount>& updated() const { return updated_; }
+  // std::bitset<Update::kCount>& updated() { return updated_; }
+  std::atomic<bool>& updated() { return updated_; }
   bool& has_data() { return has_data_; }
 
-  void set_updated(const std::bitset<Update::kCount>& updated) {
-    updated_ = updated;
-  }
-  void set_has_data(bool has_data) { has_data_ = has_data; }
+  // void set_updated(const std::bitset<Update::kCount>& updated) {
+  //   updated_ = updated;
+  // }
+  // void set_has_data(bool has_data) { has_data_ = has_data; }
 
+  void set_updated(bool updated) { updated_ = updated; }
+  void set_has_data(bool has_data) { has_data_ = has_data; }
+  
   // Serialization.
   void getProto(BlockProto* proto) const;
   void serializeToIntegers(std::vector<uint32_t>* data) const;
@@ -211,7 +215,8 @@ class Block {
   FloatingPoint block_size_inv_;
 
   /// Is set to true when data is updated.
-  std::bitset<Update::kCount> updated_;
+  // std::bitset<Update::kCount> updated_;
+  std::atomic<bool> updated_;
 };
 
 }  // namespace voxblox

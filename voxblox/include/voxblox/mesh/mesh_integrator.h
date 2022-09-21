@@ -58,6 +58,7 @@ struct MeshIntegratorConfig {
     // clang-format off
     ss << "================== Mesh Integrator Config ====================\n";
     ss << " - use_color:                 " << use_color << "\n";
+    ss << " - use history                " << use_history << "\n";
     ss << " - min_weight:                " << min_weight << "\n";
     ss << " - integrator_threads:        " << integrator_threads << "\n";
     ss << "==============================================================\n";
@@ -179,7 +180,8 @@ class MeshIntegrator {
       if (clear_updated_flag) {
         typename Block<VoxelType>::Ptr block =
             sdf_layer_mutable_->getBlockPtrByIndex(block_idx);
-        block->updated().reset(Update::kMesh);
+        // block->updated().reset(Update::kMesh);
+        block->updated() = true;
       }
     }
   }

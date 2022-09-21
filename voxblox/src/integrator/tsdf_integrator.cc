@@ -131,7 +131,8 @@ TsdfVoxel* TsdfIntegratorBase::allocateStorageAndGetVoxelPtr(
     }
   }
 
-  (*last_block)->updated().set();
+  // (*last_block)->updated().set();
+  (*last_block)->updated() = true;
 
   const VoxelIndex local_voxel_idx =
       getLocalFromGlobalVoxelIndex(global_voxel_idx, voxels_per_side_);

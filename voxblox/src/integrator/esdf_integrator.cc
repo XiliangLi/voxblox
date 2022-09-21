@@ -114,8 +114,8 @@ void EsdfIntegrator::updateFromTsdfLayer(bool clear_updated_flag) {
     for (const BlockIndex& block_index : tsdf_blocks) {
       if (tsdf_layer_->hasBlock(block_index)) {
         tsdf_layer_->getBlockByIndex(block_index)
-            .updated()
-            .reset(Update::kEsdf);
+            .updated() = false;
+            // .reset(Update::kEsdf);
       }
     }
   }
