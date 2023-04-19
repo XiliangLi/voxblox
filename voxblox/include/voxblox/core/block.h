@@ -168,7 +168,8 @@ class Block {
   FloatingPoint block_size() const { return block_size_; }
 
   bool has_data() const { return has_data_; }
-
+  bool updated() const { return updated_; }
+  
   // const std::bitset<Update::kCount>& updated() const { return updated_; }
   // std::bitset<Update::kCount>& updated() { return updated_; }
   std::atomic<bool>& updated() { return updated_; }
@@ -199,6 +200,8 @@ class Block {
 
   /// Is set to true if any one of the voxels in this block received an update.
   bool has_data_;
+  // is or not use semantic color 
+  bool use_semantic_ = true;
 
  private:
   void deserializeProto(const BlockProto& proto);

@@ -485,6 +485,48 @@ inline TsdfVoxel Interpolator<TsdfVoxel>::interpVoxel(
   voxel.color.b = interpMember(q_vector, voxels, &getBlue);
   voxel.color.a = interpMember(q_vector, voxels, &getAlpha);
 
+  // find max possible semantic label
+  std::map<uint, uint8_t> semantic_label_map;
+  uint32_t count_nums = 0;
+  for(size_t i = 0; i < 8; i++) {
+    if(!semantic_label_map.count((*voxels[i]).semantic_label)) 
+      semantic_label_map.insert(std::pair<uint, uint8_t>((*voxels[i]).semantic_label, 0));
+    semantic_label_map[(*voxels[i]).semantic_label]++;
+    // count_nums += (*voxels[i]).semantic_count;
+  }
+  // voxel.semantic_label = semantic_label_map.at(0).first;
+  // if(semantic_label_map[0].first())
+
+  auto comp = [] (std::pair<uint, uint8_t>& a, std::pair<uint, uint8_t>& b) {
+    return a.second < b.second;
+  };
+
+  std::priority_queue<std::pair<uint, uint8_t>, std::vector<std::pair<uint, uint8_t>>, decltype(comp)>  pri_que(comp);
+
+  for(std::map<uint, uint8_t>::iterator it = semantic_label_map.begin(); it != semantic_label_map.end(); it++) {
+    pri_que.push(*it);
+  }
+
+  uint first_semantic = pri_que.top().first;
+  pri_que.pop();
+  uint second_semantic = pri_que.top().first;
+  voxel.semantic_label = first_semantic;
+  if(first_semantic == 0 && semantic_label_map[first_semantic] == 
+      semantic_label_map[second_semantic]) {
+    voxel.semantic_label = second_semantic;
+  }
+  int8_t num = 0;
+  for(size_t i = 0; i < 8; i++) {
+    if((*voxels[i]).semantic_label == voxel.semantic_label) {
+      count_nums += (*voxels[i]).semantic_count;
+      num++;
+    }
+  }
+  voxel.semantic_count = count_nums / num;
+
+  // update voxel color according to label
+  voxel.semantic_color_map_.getColor(voxel.semantic_label, &voxel.color);
+  
   std::map<HistoryType, uint8_t> history_num;
   for (size_t i = 0; i < 8; i++)
     for (auto hi : (*voxels[i]).history) {

@@ -21,5 +21,6 @@
   <depend>glog_catkin</depend>
   <depend>minkindr</depend>
   <depend>protobuf_catkin</depend>
+  <!-- <depend>global_segment_map</depend> -->
 
 </package>

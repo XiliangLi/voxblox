@@ -1,8 +1,12 @@
+#include <iostream>
 #include "voxblox/core/block.h"
 
 #include "voxblox/core/voxel.h"
 
 namespace voxblox {
+
+// initial static member variable
+SemanticColorMap TsdfVoxel::semantic_color_map_(SemanticColorMap::create(SemanticColorMap::ClassTask::kCoco80));
 
 // Hidden serialization helpers
 void serializeDirection(const Eigen::Vector3i& parent_direction,
@@ -65,7 +69,7 @@ Eigen::Vector3i deserializeDirection(const uint32_t data) {
 template <>
 void Block<TsdfVoxel>::deserializeFromIntegers(
     const std::vector<uint32_t>& data) {
-  constexpr size_t kNumDataPacketsPerVoxel = 3u;
+  constexpr size_t kNumDataPacketsPerVoxel = 5u;
   const size_t num_data_packets = data.size();
   CHECK_EQ(num_voxels_ * kNumDataPacketsPerVoxel, num_data_packets);
   for (size_t voxel_idx = 0u, data_idx = 0u;
@@ -73,7 +77,9 @@ void Block<TsdfVoxel>::deserializeFromIntegers(
        ++voxel_idx, data_idx += kNumDataPacketsPerVoxel) {
     const uint32_t bytes_1 = data[data_idx];
     const uint32_t bytes_2 = data[data_idx + 1u];
-    const uint32_t bytes_3 = data[data_idx + 2u];
+    const uint32_t bytes_3 = data[data_idx + 2u];  // semantic label
+    const uint32_t bytes_4 = data[data_idx + 3u];  // count
+    const uint32_t bytes_5 = data[data_idx + 4u];  // color
 
     TsdfVoxel& voxel = voxels_[voxel_idx];
 
@@ -81,11 +87,20 @@ void Block<TsdfVoxel>::deserializeFromIntegers(
 
     memcpy(&(voxel.distance), &bytes_1, sizeof(bytes_1));
     memcpy(&(voxel.weight), &bytes_2, sizeof(bytes_2));
+    memcpy(&(voxel.semantic_label), &bytes_3, sizeof(bytes_3));
+    memcpy(&(voxel.semantic_count), &bytes_4, sizeof(bytes_4));
 
-    voxel.color.r = static_cast<uint8_t>(bytes_3 >> 24);
-    voxel.color.g = static_cast<uint8_t>((bytes_3 & 0x00FF0000) >> 16);
-    voxel.color.b = static_cast<uint8_t>((bytes_3 & 0x0000FF00) >> 8);
-    voxel.color.a = static_cast<uint8_t>(bytes_3 & 0x000000FF);
+    voxel.color.r = static_cast<uint8_t>(bytes_5 >> 24);
+    voxel.color.g = static_cast<uint8_t>((bytes_5 & 0x00FF0000) >> 16);
+    voxel.color.b = static_cast<uint8_t>((bytes_5 & 0x0000FF00) >> 8);
+    voxel.color.a = static_cast<uint8_t>(bytes_5 & 0x000000FF);
+    
+      // std::cout << "====================deserializefromIntegers: semantic_label, semantic_count   " << 
+      //     voxel.semantic_label << "    " << voxel.semantic_count << std::endl;
+    // if(use_semantic_) {
+    //   voxel.color.a = 255; 
+    //   voxel.semantic_color_map_.getColor(voxel.semantic_label, &voxel.color);
+    // }
   }
 }
 
@@ -159,7 +174,7 @@ void Block<IntensityVoxel>::deserializeFromIntegers(
 template <>
 void Block<TsdfVoxel>::serializeToIntegers(std::vector<uint32_t>* data) const {
   CHECK_NOTNULL(data);
-  constexpr size_t kNumDataPacketsPerVoxel = 3u;
+  constexpr size_t kNumDataPacketsPerVoxel = 5u;
   data->clear();
   data->reserve(num_voxels_ * kNumDataPacketsPerVoxel);
   for (size_t voxel_idx = 0u; voxel_idx < num_voxels_; ++voxel_idx) {
@@ -173,6 +188,14 @@ void Block<TsdfVoxel>::serializeToIntegers(std::vector<uint32_t>* data) const {
     const uint32_t* bytes_2_ptr =
         reinterpret_cast<const uint32_t*>(&voxel.weight);
     data->push_back(*bytes_2_ptr);
+
+    const uint32_t* bytes_3_ptr =
+        reinterpret_cast<const uint32_t*>(&voxel.semantic_label);
+    data->push_back(*bytes_3_ptr);
+
+    const uint32_t* bytes_4_ptr =
+        reinterpret_cast<const uint32_t*>(&voxel.semantic_count);
+    data->push_back(*bytes_4_ptr);
 
     data->push_back(static_cast<uint32_t>(voxel.color.a) |
                     (static_cast<uint32_t>(voxel.color.b) << 8) |

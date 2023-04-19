@@ -16,6 +16,7 @@
 #include <kindr/minimal/quat-transformation.h>
 #include <Eigen/Core>
 
+// #include "voxblox/core/color.h"
 namespace voxblox {
 
 // Aligned Eigen containers
@@ -36,6 +37,14 @@ inline std::shared_ptr<Type> aligned_shared(Arguments&&... arguments) {
   return std::allocate_shared<Type>(Eigen::aligned_allocator<TypeNonConst>(),
                                     std::forward<Arguments>(arguments)...);
 }
+
+// Voxblox++ custom types.
+typedef uint16_t Label;
+typedef uint16_t LabelConfidence;
+typedef uint16_t InstanceLabel;
+typedef uint8_t SemanticLabel;
+typedef uint32_t SemanticCount; 
+
 
 // Types.
 typedef float FloatingPoint;
@@ -106,6 +115,14 @@ struct Color {
   uint8_t b;
   uint8_t a;
 
+  // define operator == 
+  inline bool operator==(const Color& color) {
+    if(this->r == color.r && this->g == color.g && 
+        this->b == color.b && this->a == color.a)
+      return true;
+    return false;
+  }
+
   static Color blendTwoColors(const Color& first_color,
                               FloatingPoint first_weight,
                               const Color& second_color,
@@ -140,6 +157,7 @@ struct Color {
   static const Color Purple() { return Color(127, 0, 255); }
   static const Color Teal() { return Color(0, 255, 255); }
   static const Color Pink() { return Color(255, 0, 127); }
+  static const Color BGround() { return Color(200, 200, 200);}
 };
 
 // Constants used across the library.

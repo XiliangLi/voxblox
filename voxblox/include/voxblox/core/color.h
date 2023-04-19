@@ -2,6 +2,7 @@
 #define VOXBLOX_CORE_COLOR_H_
 
 #include "voxblox/core/common.h"
+// #include "voxblox/core/semantic_color_map.h"
 
 namespace voxblox {
 

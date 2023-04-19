@@ -668,7 +668,8 @@ void TsdfServer::publishMap(bool reset_remote_map) {
       // inconsistent map states.
       reset_remote_map = true;
     }
-    const bool only_updated = !reset_remote_map;
+    bool only_updated = !reset_remote_map;
+    if(submap_interval_ > 0.0) only_updated = false;
     timing::Timer publish_map_timer("map/publish_tsdf");
     voxblox_msgs::Layer layer_msg;
     serializeLayerAsMsg<TsdfVoxel>(this->tsdf_map_->getTsdfLayer(),
@@ -679,6 +680,7 @@ void TsdfServer::publishMap(bool reset_remote_map) {
     if (publish_map_with_trajectory_) {
       voxblox_msgs::LayerWithTrajectory layer_with_trajectory_msg;
       layer_with_trajectory_msg.layer = layer_msg;
+      layer_msg.action = static_cast<uint8_t>(MapDerializationAction::kUpdate);
       for (const PointcloudDeintegrationPacket& pointcloud_queue_packet :
            pointcloud_deintegration_queue_) {
         geometry_msgs::PoseStamped pose_msg;

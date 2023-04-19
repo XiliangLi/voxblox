@@ -6,6 +6,8 @@
 
 #include "voxblox/core/color.h"
 #include "voxblox/core/common.h"
+#include "voxblox/core/semantic_color_map.h"
+
 
 namespace voxblox {
 
@@ -14,7 +16,13 @@ struct TsdfVoxel {
   float weight = 0.0f;
   Color color;
   ObsHistory history;
+  // semantic 
+  uint semantic_label = 0u;
+  uint semantic_count = 0u;
+  static SemanticColorMap semantic_color_map_;
 };
+
+
 
 struct EsdfVoxel {
   float distance = 0.0f;

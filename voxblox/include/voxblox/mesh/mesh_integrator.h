@@ -181,7 +181,7 @@ class MeshIntegrator {
         typename Block<VoxelType>::Ptr block =
             sdf_layer_mutable_->getBlockPtrByIndex(block_idx);
         // block->updated().reset(Update::kMesh);
-        block->updated() = true;
+        block->updated() = false;
       }
     }
   }
